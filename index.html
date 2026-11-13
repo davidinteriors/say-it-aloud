@@ -1,0 +1,503 @@
+<title>Say It Aloud</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap">
+<style>
+  /* Layout: one calm column. Input and controls on top, tappable word stage in the middle, settings last. */
+  :root {
+    --bg: #F4F6F8;
+    --surface: #FFFFFF;
+    --field: #FBFCFD;
+    --fg: #18202B;
+    --muted: #586174;
+    --line: #D5DAE2;
+    --accent: #1F4FC4;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #D9E3FB;
+    --hl: #FFD54A;
+    --hl-ink: #18202B;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F131A;
+      --surface: #171D27;
+      --field: #121821;
+      --fg: #E7EBF2;
+      --muted: #9AA4B6;
+      --line: #2B3442;
+      --accent: #8CA9FF;
+      --accent-ink: #0F131A;
+      --accent-soft: #25324F;
+      --hl: #FFD54A;
+      --hl-ink: #18202B;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F131A;
+    --surface: #171D27;
+    --field: #121821;
+    --fg: #E7EBF2;
+    --muted: #9AA4B6;
+    --line: #2B3442;
+    --accent: #8CA9FF;
+    --accent-ink: #0F131A;
+    --accent-soft: #25324F;
+    --hl: #FFD54A;
+    --hl-ink: #18202B;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .app { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .lede { margin: 0; color: var(--muted); font-size: 1.0625rem; max-width: 60ch; }
+
+  .label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+    padding: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 112px;
+    resize: vertical;
+    font: inherit;
+    font-size: 1.1875rem;
+    line-height: 1.45;
+    color: var(--fg);
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  textarea::placeholder { color: var(--muted); }
+  .hint { margin: -4px 0 0; font-size: 0.875rem; color: var(--muted); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--field); }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-right: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .seg label:last-of-type { border-right: 0; }
+  .seg input:checked + label { background: var(--accent); color: var(--accent-ink); }
+  .seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: -3px; }
+  .seg input:checked:focus-visible + label { outline-color: var(--hl); }
+
+  .buttons { display: flex; gap: 10px; }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, select:focus-visible, input[type="range"]:focus-visible, textarea:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .primary, .secondary {
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-weight: 700;
+    border: 1px solid var(--accent);
+  }
+  .primary { background: var(--accent); color: var(--accent-ink); min-width: 104px; }
+  .secondary { background: transparent; color: var(--accent); border-color: var(--line); }
+  .secondary:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .stage { display: flex; flex-direction: column; gap: 10px; }
+  .sentence {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .sentence.now { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .words { flex: 1 1 280px; min-width: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .word {
+    font-size: 1.375rem;
+    line-height: 1.25;
+    color: var(--fg);
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 12px;
+    transition: background-color 0.08s, border-color 0.08s;
+  }
+  button.word:hover { border-color: var(--accent); }
+  .word.mute { border-color: transparent; background: transparent; padding-inline: 2px; color: var(--muted); }
+  .word.active { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
+  .sentence .secondary { padding: 7px 14px; font-size: 0.9375rem; flex: 0 0 auto; }
+  .empty { margin: 0; padding: 18px; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+
+  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; }
+  .field { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .field .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .field .label { margin: 0; }
+  .value { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.9375rem; }
+  select {
+    width: 100%;
+    font: inherit;
+    color: var(--fg);
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 10px;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin: 6px 0; }
+
+  .warn {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--hl);
+    color: var(--hl-ink);
+    font-weight: 700;
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.875rem; }
+    .seg { width: 100%; }
+    .seg label { flex: 1; text-align: center; padding-inline: 8px; }
+    .buttons { width: 100%; }
+    .buttons button { flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .word { transition: none; }
+  }
+</style>
+
+<main class="app">
+  <header>
+    <h1>Say It Aloud</h1>
+    <p class="lede">Type English sentences. Hear every word on its own, then the whole sentence read through.</p>
+  </header>
+
+  <p id="warn" class="warn" role="alert" hidden>This browser cannot read text aloud. Try Chrome, Edge, Safari or Firefox.</p>
+
+  <section class="card" aria-label="Write">
+    <div>
+      <label class="label" for="text">Your sentences</label>
+      <textarea id="text" spellcheck="true" lang="en" placeholder="Type or paste a sentence, for example: I would like a glass of water, please."></textarea>
+    </div>
+    <p class="hint">A new line, or a full stop, question mark or exclamation mark, starts a new sentence. Ctrl+Enter (Cmd+Enter on Mac) plays.</p>
+    <div class="controls">
+      <fieldset class="seg-wrap">
+        <legend class="label">Read as</legend>
+        <div class="seg" role="radiogroup">
+          <input type="radio" name="mode" id="mode-both" value="both" checked>
+          <label for="mode-both">Words, then sentence</label>
+          <input type="radio" name="mode" id="mode-words" value="words">
+          <label for="mode-words">Words only</label>
+          <input type="radio" name="mode" id="mode-sentence" value="sentence">
+          <label for="mode-sentence">Sentence only</label>
+        </div>
+      </fieldset>
+      <div class="buttons">
+        <button id="speak" class="primary" type="button">Speak</button>
+        <button id="stop" class="secondary" type="button" disabled>Stop</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Words">
+    <h2 class="label">Tap any word to hear it</h2>
+    <div id="stage" class="stage"></div>
+  </section>
+
+  <section class="card settings" aria-label="Voice settings">
+    <div class="field">
+      <label class="label" for="voice">Voice</label>
+      <select id="voice"><option value="">Default voice</option></select>
+    </div>
+    <div class="field">
+      <div class="row"><label class="label" for="rate">Speed</label><span id="rateOut" class="value">0.9×</span></div>
+      <input type="range" id="rate" min="0.5" max="1.5" step="0.05" value="0.9">
+    </div>
+    <div class="field">
+      <div class="row"><label class="label" for="gap">Pause between words</label><span id="gapOut" class="value">0.5 s</span></div>
+      <input type="range" id="gap" min="0" max="2000" step="100" value="500">
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var SAMPLE = "I would like a glass of water, please.\nWhere is the nearest train station?";
+  var $ = function (id) { return document.getElementById(id); };
+  var synth = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+  var ta = $("text"), stage = $("stage"), speakBtn = $("speak"), stopBtn = $("stop");
+  var voiceSel = $("voice"), rateIn = $("rate"), gapIn = $("gap"), rateOut = $("rateOut"), gapOut = $("gapOut");
+  var voices = [], sentences = [], run = 0;
+
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem("sia." + k); return v === null ? d : v; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem("sia." + k, v); } catch (e) {} }
+  };
+
+  function mode() { return document.querySelector("input[name=mode]:checked").value; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function parse(text) {
+    var out = [];
+    text.split(/\n+/).forEach(function (line) {
+      line.trim().split(/(?<=[.!?。！？])\s+/).forEach(function (part) {
+        var s = part.trim();
+        if (!s) return;
+        var words = [], re = /\S+/g, m;
+        while ((m = re.exec(s))) {
+          var spoken = m[0].replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+          words.push({ text: m[0], start: m.index, end: m.index + m[0].length, spoken: spoken, el: null });
+        }
+        out.push({ text: s, words: words, el: null });
+      });
+    });
+    return out;
+  }
+
+  function clearActive() {
+    stage.querySelectorAll(".active, .now").forEach(function (e) { e.classList.remove("active", "now"); });
+  }
+  function mark(si, wi) {
+    clearActive();
+    var s = sentences[si];
+    if (!s) return;
+    s.el.classList.add("now");
+    if (wi !== null && wi !== undefined && s.words[wi] && s.words[wi].el) s.words[wi].el.classList.add("active");
+  }
+
+  function setPlaying(on) {
+    stopBtn.disabled = !on;
+    speakBtn.disabled = on || !synth || !sentences.length;
+  }
+
+  function speakP(text, my, onBoundary) {
+    return new Promise(function (res) {
+      if (!synth || my !== run) return res();
+      var u = new SpeechSynthesisUtterance(text);
+      var v = voices.find(function (x) { return x.voiceURI === voiceSel.value; });
+      if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = "en-US"; }
+      u.rate = parseFloat(rateIn.value);
+      u.onend = function () { res(); };
+      u.onerror = function () { res(); };
+      if (onBoundary) u.onboundary = onBoundary;
+      synth.speak(u);
+    });
+  }
+
+  function boundaryFor(si, my) {
+    var s = sentences[si];
+    return function (e) {
+      if (e.name && e.name !== "word") return;
+      var i = s.words.findIndex(function (w) { return e.charIndex >= w.start && e.charIndex < w.end; });
+      if (i >= 0 && my === run) mark(si, i);
+    };
+  }
+
+  function stop() {
+    run++;
+    if (synth) synth.cancel();
+    clearActive();
+    setPlaying(false);
+  }
+
+  async function play() {
+    if (!synth || !sentences.length) return;
+    stop();
+    var my = ++run;
+    setPlaying(true);
+    var m = mode(), gap = parseInt(gapIn.value, 10);
+    for (var si = 0; si < sentences.length; si++) {
+      var s = sentences[si];
+      if (m !== "sentence") {
+        for (var wi = 0; wi < s.words.length; wi++) {
+          var w = s.words[wi];
+          if (!w.spoken) continue;
+          if (my !== run) return;
+          mark(si, wi);
+          await speakP(w.spoken, my);
+          if (my !== run) return;
+          await sleep(gap);
+        }
+        if (m === "both") {
+          if (my !== run) return;
+          mark(si, null);
+          await sleep(500);
+        }
+      }
+      if (m !== "words") {
+        if (my !== run) return;
+        mark(si, null);
+        await speakP(s.text, my, boundaryFor(si, my));
+      }
+      if (my !== run) return;
+      clearActive();
+      if (si < sentences.length - 1) await sleep(600);
+    }
+    if (my === run) { clearActive(); setPlaying(false); }
+  }
+
+  async function speakOne(si, wi) {
+    if (!synth) return;
+    stop();
+    var my = ++run;
+    mark(si, wi);
+    await speakP(sentences[si].words[wi].spoken, my);
+    if (my === run) clearActive();
+  }
+
+  async function speakSentence(si) {
+    if (!synth) return;
+    stop();
+    var my = ++run;
+    mark(si, null);
+    await speakP(sentences[si].text, my, boundaryFor(si, my));
+    if (my === run) clearActive();
+  }
+
+  function render() {
+    stage.textContent = "";
+    sentences = parse(ta.value);
+    if (!sentences.length) {
+      var p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = "Your sentences appear here as words you can tap.";
+      stage.appendChild(p);
+      setPlaying(false);
+      return;
+    }
+    sentences.forEach(function (s, si) {
+      var row = document.createElement("div");
+      row.className = "sentence";
+      var words = document.createElement("p");
+      words.className = "words";
+      s.words.forEach(function (w, wi) {
+        var el;
+        if (w.spoken) {
+          el = document.createElement("button");
+          el.type = "button";
+          el.className = "word";
+          el.addEventListener("click", function () { speakOne(si, wi); });
+        } else {
+          el = document.createElement("span");
+          el.className = "word mute";
+        }
+        el.textContent = w.text;
+        w.el = el;
+        words.appendChild(el);
+      });
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "secondary";
+      btn.textContent = "Hear sentence";
+      btn.addEventListener("click", function () { speakSentence(si); });
+      row.appendChild(words);
+      row.appendChild(btn);
+      s.el = row;
+      stage.appendChild(row);
+    });
+    setPlaying(false);
+  }
+
+  function loadVoices() {
+    if (!synth) return;
+    var all = synth.getVoices();
+    if (!all.length) return;
+    var list = all.filter(function (v) { return /^en/i.test(v.lang); });
+    if (!list.length) list = all;
+    voices = list;
+    var current = voiceSel.value || store.get("voice", "");
+    voiceSel.textContent = "";
+    list.forEach(function (v) {
+      var o = document.createElement("option");
+      o.value = v.voiceURI;
+      o.textContent = v.name + " (" + v.lang + ")";
+      voiceSel.appendChild(o);
+    });
+    var pick = list.find(function (v) { return v.voiceURI === current; }) ||
+      list.find(function (v) { return v.default && /^en/i.test(v.lang); }) ||
+      list.find(function (v) { return /^en-(US|GB)/i.test(v.lang); }) ||
+      list[0];
+    voiceSel.value = pick.voiceURI;
+  }
+
+  function showRate() { rateOut.textContent = parseFloat(rateIn.value).toFixed(2).replace(/0$/, "") + "×"; }
+  function showGap() { gapOut.textContent = (parseInt(gapIn.value, 10) / 1000).toFixed(1) + " s"; }
+
+  // restore saved state
+  ta.value = store.get("text", SAMPLE);
+  rateIn.value = store.get("rate", "0.9");
+  gapIn.value = store.get("gap", "500");
+  var savedMode = store.get("mode", "both");
+  var modeEl = document.querySelector("input[name=mode][value=" + savedMode + "]");
+  if (modeEl) modeEl.checked = true;
+  showRate();
+  showGap();
+
+  if (!synth) { $("warn").hidden = false; }
+
+  ta.addEventListener("input", function () { stop(); store.set("text", ta.value); render(); });
+  ta.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); play(); }
+  });
+  rateIn.addEventListener("input", function () { showRate(); store.set("rate", rateIn.value); });
+  gapIn.addEventListener("input", function () { showGap(); store.set("gap", gapIn.value); });
+  voiceSel.addEventListener("change", function () { store.set("voice", voiceSel.value); });
+  document.querySelectorAll("input[name=mode]").forEach(function (r) {
+    r.addEventListener("change", function () { store.set("mode", mode()); });
+  });
+  speakBtn.addEventListener("click", play);
+  stopBtn.addEventListener("click", stop);
+
+  if (synth) {
+    loadVoices();
+    if (typeof synth.addEventListener === "function") synth.addEventListener("voiceschanged", loadVoices);
+    else synth.onvoiceschanged = loadVoices;
+  }
+  render();
+})();
+</script>
