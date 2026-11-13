@@ -1,9 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Say It Aloud</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap">
 <style>
   /* Layout: one calm column. Input and controls on top, tappable word stage in the middle, settings last. */
   :root {
+    color-scheme: light;
     --bg: #F4F6F8;
     --surface: #FFFFFF;
     --field: #FBFCFD;
@@ -49,6 +54,9 @@
     color-scheme: dark;
   }
 
+  html { -webkit-text-size-adjust: 100%; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  [hidden] { display: none !important; }
   * { box-sizing: border-box; }
   body {
     background: var(--bg);
@@ -128,7 +136,7 @@
   .seg input:checked:focus-visible + label { outline-color: var(--hl); }
 
   .buttons { display: flex; gap: 10px; }
-  button { font: inherit; cursor: pointer; }
+  button { font: inherit; cursor: pointer; touch-action: manipulation; }
   button:focus-visible, select:focus-visible, input[type="range"]:focus-visible, textarea:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
@@ -199,17 +207,35 @@
     font-weight: 700;
   }
 
-  @media (max-width: 480px) {
-    h1 { font-size: 1.875rem; }
-    .seg { width: 100%; }
-    .seg label { flex: 1; text-align: center; padding-inline: 8px; }
-    .buttons { width: 100%; }
-    .buttons button { flex: 1; }
+  @media (max-width: 560px) {
+    body { padding-block: 14px 28px; }
+    .app { gap: 14px; }
+    h1 { font-size: 1.625rem; margin-bottom: 2px; }
+    .lede { font-size: 0.9375rem; line-height: 1.4; }
+    .card { padding: 12px; gap: 10px; border-radius: 12px; }
+    textarea { min-height: 84px; font-size: 1.0625rem; padding: 10px 12px; }
+    .hint { font-size: 0.8125rem; line-height: 1.35; }
+    .hint .desktop-only { display: none; }
+    .controls { gap: 10px; }
+    .controls > * { width: 100%; }
+    .seg { display: flex; width: 100%; }
+    .seg label { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; white-space: normal; line-height: 1.2; padding: 8px 6px; font-size: 0.8125rem; }
+    .buttons button { flex: 1; padding-block: 12px; }
+    .stage { gap: 8px; }
+    .sentence { padding: 10px 12px; gap: 8px; border-radius: 12px; }
+    .words { flex-basis: 100%; gap: 6px; }
+    .word { font-size: 1.125rem; padding: 5px 10px; }
+    .sentence .secondary { padding: 5px 12px; font-size: 0.8125rem; }
+    .settings { grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    .settings .field:first-child { grid-column: 1 / -1; }
+    select { padding: 8px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .word { transition: none; }
   }
 </style>
+</head>
+<body>
 
 <main class="app">
   <header>
@@ -224,7 +250,7 @@
       <label class="label" for="text">Your sentences</label>
       <textarea id="text" spellcheck="true" lang="en" placeholder="Type or paste a sentence, for example: I would like a glass of water, please."></textarea>
     </div>
-    <p class="hint">A new line, or a full stop, question mark or exclamation mark, starts a new sentence. Ctrl+Enter (Cmd+Enter on Mac) plays.</p>
+    <p class="hint">A new line, or a full stop, question mark or exclamation mark, starts a new sentence.<span class="desktop-only"> Ctrl+Enter (Cmd+Enter on Mac) plays.</span></p>
     <div class="controls">
       <fieldset class="seg-wrap">
         <legend class="label">Read as</legend>
@@ -259,7 +285,7 @@
       <input type="range" id="rate" min="0.5" max="1.5" step="0.05" value="0.9">
     </div>
     <div class="field">
-      <div class="row"><label class="label" for="gap">Pause between words</label><span id="gapOut" class="value">0.5 s</span></div>
+      <div class="row"><label class="label" for="gap">Word pause</label><span id="gapOut" class="value">0.5 s</span></div>
       <input type="range" id="gap" min="0" max="2000" step="100" value="500">
     </div>
   </section>
@@ -501,3 +527,5 @@
   render();
 })();
 </script>
+</body>
+</html>
